@@ -12,6 +12,8 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
+    use HasRoles;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -44,5 +46,21 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    // Relationships
+    public function requests()
+    {
+        return $this->hasMany(Request::class);
+    }
+
+    public function approvedRequests()
+    {
+        return $this->hasMany(Request::class, 'approver_id');
+    }
+
+    public function auditLogs()
+    {
+        return $this->hasMany(AuditLog::class);
     }
 }

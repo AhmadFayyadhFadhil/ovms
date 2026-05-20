@@ -3,6 +3,8 @@
 namespace App\Observers;
 
 use App\Models\Request;
+use App\Models\AuditLog;
+use Illuminate\Support\Facades\Auth;
 
 class RequestObserver
 {
@@ -11,7 +13,14 @@ class RequestObserver
      */
     public function created(Request $request): void
     {
-        //
+        AuditLog::create([
+            'user_id' => Auth::id(),
+            'auditable_id' => $request->id,
+            'auditable_type' => Request::class,
+            'action' => 'created',
+            'new_values' => $request->toArray(),
+            'old_values' => null,
+        ]);
     }
 
     /**
@@ -19,7 +28,19 @@ class RequestObserver
      */
     public function updated(Request $request): void
     {
-        //
+        $changes = $request->getChanges();
+        
+        // Only log if there are actual changes (exclude timestamps)
+        if (!empty(array_diff_key($changes, ['updated_at' => null]))) {
+            AuditLog::create([
+                'user_id' => Auth::id(),
+                'auditable_id' => $request->id,
+                'auditable_type' => Request::class,
+                'action' => 'updated',
+                'old_values' => $request->getOriginal(),
+                'new_values' => $request->toArray(),
+            ]);
+        }
     }
 
     /**
@@ -27,7 +48,14 @@ class RequestObserver
      */
     public function deleted(Request $request): void
     {
-        //
+        AuditLog::create([
+            'user_id' => Auth::id(),
+            'auditable_id' => $request->id,
+            'auditable_type' => Request::class,
+            'action' => 'deleted',
+            'old_values' => $request->toArray(),
+            'new_values' => null,
+        ]);
     }
 
     /**
@@ -35,7 +63,14 @@ class RequestObserver
      */
     public function restored(Request $request): void
     {
-        //
+        AuditLog::create([
+            'user_id' => Auth::id(),
+            'auditable_id' => $request->id,
+            'auditable_type' => Request::class,
+            'action' => 'restored',
+            'new_values' => $request->toArray(),
+            'old_values' => null,
+        ]);
     }
 
     /**
@@ -43,6 +78,13 @@ class RequestObserver
      */
     public function forceDeleted(Request $request): void
     {
-        //
+        AuditLog::create([
+            'user_id' => Auth::id(),
+            'auditable_id' => $request->id,
+            'auditable_type' => Request::class,
+            'action' => 'force_deleted',
+            'old_values' => $request->toArray(),
+            'new_values' => null,
+        ]);
     }
 }
