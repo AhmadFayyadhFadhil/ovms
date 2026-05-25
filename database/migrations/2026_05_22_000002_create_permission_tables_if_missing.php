@@ -42,7 +42,7 @@ return new class extends Migration
 
         if (!Schema::hasTable('model_has_roles')) {
             Schema::create('model_has_roles', function (Blueprint $table) {
-                $table->unsignedBigInteger('role_id');
+                $table->integer('role_id');
                 $table->string('model_type');
                 $table->unsignedBigInteger('model_id');
                 $table->index(['model_id', 'model_type']);
@@ -56,7 +56,7 @@ return new class extends Migration
         if (!Schema::hasTable('role_has_permissions')) {
             Schema::create('role_has_permissions', function (Blueprint $table) {
                 $table->unsignedBigInteger('permission_id');
-                $table->unsignedBigInteger('role_id');
+                $table->integer('role_id');
                 $table->foreign('permission_id')
                     ->references('id')
                     ->on('permissions')
