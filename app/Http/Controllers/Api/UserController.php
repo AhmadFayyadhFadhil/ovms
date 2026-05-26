@@ -19,7 +19,7 @@ class UserController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        if (!$this->isAdmin()) {
+        if (!Auth::user()->hasAnyRole(['Admin', 'GA'])) {
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
         }
 
@@ -152,6 +152,8 @@ class UserController extends Controller
             'id'         => $user->id,
             'name'       => $user->name,
             'email'      => $user->email,
+            'department_id' => $user->department_id,
+            'availability_status' => $user->availability_status,
             'roles'      => $user->getRoleNames(),
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,

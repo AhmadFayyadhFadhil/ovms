@@ -28,9 +28,9 @@ class Vehicle extends Model
         return $this->hasMany(Request::class);
     }
 
-    public function assignments()
+    public function operationalTrips()
     {
-        return $this->hasMany(Assignment::class);
+        return $this->hasMany(OperationalTrip::class);
     }
 
     // Scopes

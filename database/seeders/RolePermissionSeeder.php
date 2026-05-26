@@ -13,26 +13,15 @@ class RolePermissionSeeder extends Seeder
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         $permissions = [
-            'create-request',
-            'view-own-request',
-            'view-all-requests',
-            'update-request',
-            'delete-request',
-            'approve-request',
-            'reject-request',
-            'view-vehicle',
-            'create-vehicle',
-            'update-vehicle',
-            'delete-vehicle',
-            'view-user',
-            'create-user',
-            'update-user',
-            'delete-user',
+            'create-request', 'view-own-request', 'view-all-requests',
+            'update-request', 'delete-request', 'approve-request', 'reject-request',
+            'view-vehicle', 'create-vehicle', 'update-vehicle', 'delete-vehicle',
+            'view-user', 'create-user', 'update-user', 'delete-user',
             'view-audit-log',
         ];
 
-        // Buat permission untuk KEDUA guard: web dan api
-        foreach (['web', 'api'] as $guard) {
+        // Buat permission untuk guard web DAN sanctum
+        foreach (['web', 'sanctum'] as $guard) {
             foreach ($permissions as $permission) {
                 Permission::firstOrCreate([
                     'name'       => $permission,
@@ -43,11 +32,9 @@ class RolePermissionSeeder extends Seeder
 
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        $roleNames = ['Admin', 'GA', 'Approver', 'Employee', 'Driver'];
-
-        // Buat role untuk KEDUA guard: web dan api
-        foreach (['web', 'api'] as $guard) {
-            foreach ($roleNames as $roleName) {
+        // Buat role untuk guard web DAN sanctum
+        foreach (['web', 'sanctum'] as $guard) {
+            foreach (['Admin', 'GA', 'Approver', 'Employee', 'Driver'] as $roleName) {
                 Role::firstOrCreate([
                     'name'       => $roleName,
                     'guard_name' => $guard,
@@ -57,8 +44,7 @@ class RolePermissionSeeder extends Seeder
 
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Assign permission ke role untuk masing-masing guard
-        foreach (['web', 'api'] as $guard) {
+        foreach (['web', 'sanctum'] as $guard) {
             $allPerms = Permission::where('guard_name', $guard)->get();
 
             $admin    = Role::where('name', 'Admin')->where('guard_name', $guard)->first();
@@ -69,31 +55,23 @@ class RolePermissionSeeder extends Seeder
 
             $admin->syncPermissions($allPerms);
 
-            $ga->syncPermissions(
-                $allPerms->whereIn('name', [
-                    'view-vehicle', 'create-vehicle', 'update-vehicle', 'delete-vehicle',
-                    'view-all-requests', 'view-audit-log',
-                ])
-            );
+            $ga->syncPermissions($allPerms->whereIn('name', [
+                'view-vehicle', 'create-vehicle', 'update-vehicle', 'delete-vehicle',
+                'view-all-requests', 'view-audit-log',
+            ]));
 
-            $approver->syncPermissions(
-                $allPerms->whereIn('name', [
-                    'view-all-requests', 'approve-request', 'reject-request',
-                    'view-vehicle', 'view-audit-log',
-                ])
-            );
+            $approver->syncPermissions($allPerms->whereIn('name', [
+                'view-all-requests', 'approve-request', 'reject-request',
+                'view-vehicle', 'view-audit-log',
+            ]));
 
-            $employee->syncPermissions(
-                $allPerms->whereIn('name', [
-                    'create-request', 'view-own-request', 'view-vehicle',
-                ])
-            );
+            $employee->syncPermissions($allPerms->whereIn('name', [
+                'create-request', 'view-own-request', 'view-vehicle',
+            ]));
 
-            $driver->syncPermissions(
-                $allPerms->whereIn('name', [
-                    'view-vehicle', 'view-own-request',
-                ])
-            );
+            $driver->syncPermissions($allPerms->whereIn('name', [
+                'view-vehicle', 'view-own-request',
+            ]));
         }
 
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();

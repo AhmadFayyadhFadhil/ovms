@@ -2,30 +2,27 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-class Assignment extends Model
+class OperationalTrip extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'request_id',
         'driver_id',
-        'assigned_by',
-        'assigned_at',
-        'notes',
-        'reject_reason',
-        'status', // pending_driver, accepted, rejected
-        'start_photo',
-        'end_photo',
+        'vehicle_id',
+        'start_datetime',
+        'end_datetime',
+        'status',
     ];
 
     protected $casts = [
-        'assigned_at' => 'datetime',
+        'start_datetime' => 'datetime',
+        'end_datetime' => 'datetime',
     ];
 
-    // Relationships
     public function request()
     {
         return $this->belongsTo(Request::class);
@@ -36,8 +33,8 @@ class Assignment extends Model
         return $this->belongsTo(User::class, 'driver_id');
     }
 
-    public function assignedBy()
+    public function vehicle()
     {
-        return $this->belongsTo(User::class, 'assigned_by');
+        return $this->belongsTo(Vehicle::class);
     }
 }

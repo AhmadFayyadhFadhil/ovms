@@ -42,6 +42,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/requests/{vehicleRequest}', [RequestController::class, 'destroy']);
     Route::post('/requests/{vehicleRequest}/approve', [RequestController::class, 'approve']);
     Route::post('/requests/{vehicleRequest}/reject', [RequestController::class, 'reject']);
+    Route::post('/requests/{vehicleRequest}/start', [RequestController::class, 'start']);
+    Route::post('/requests/{vehicleRequest}/complete', [RequestController::class, 'complete']);
 
     // ===== VEHICLE ENDPOINTS =====
     Route::get('/vehicles', [VehicleController::class, 'index']);

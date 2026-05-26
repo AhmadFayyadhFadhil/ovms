@@ -49,6 +49,10 @@ class VehicleController extends Controller
 
     public function store(StoreVehicleRequest $request): JsonResponse
     {
+        if (!Auth::user()->hasAnyRole(['Admin', 'GA'])) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
+
         $vehicle = Vehicle::create($request->validated());
 
         return response()->json([
@@ -68,6 +72,10 @@ class VehicleController extends Controller
 
     public function update(UpdateVehicleRequest $request, Vehicle $vehicle): JsonResponse
     {
+        if (!Auth::user()->hasAnyRole(['Admin', 'GA'])) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
+
         $vehicle->update($request->validated());
 
         return response()->json([
@@ -83,7 +91,7 @@ class VehicleController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
         }
 
-        if ($vehicle->assignments()->exists()) {
+        if ($vehicle->operationalTrips()->exists()) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Tidak dapat menghapus kendaraan yang memiliki riwayat penugasan',

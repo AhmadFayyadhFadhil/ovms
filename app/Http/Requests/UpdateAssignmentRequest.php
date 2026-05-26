@@ -12,8 +12,7 @@ class UpdateAssignmentRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $assignment = $this->route('assignment');
-        return $this->user()->hasAnyRole(['Admin', 'GA']) || $this->user()->id === $assignment->driver_id;
+        return $this->user()->hasAnyRole(['Admin', 'Driver']);
     }
 
     /**
@@ -21,29 +20,13 @@ class UpdateAssignmentRequest extends FormRequest
      */
     public function rules(): array
     {
-        $assignment = $this->route('assignment');
-
         return [
-            // FIX: support flexible date format (ISO 8601 included)
-            'returned_at' => 'required|date|after:' . $assignment->assigned_at,
-            'notes'       => 'nullable|string|max:1000',
+            'response' => 'required|in:accepted,rejected',
+            'vehicle_id' => 'required_if:response,accepted|exists:vehicles,id',
+            'reject_reason' => 'required_if:response,rejected|string|max:1000',
+            'start_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
+            'end_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
         ];
-    }
-
-    /**
-     * Prepare the data for validation.
-     */
-    protected function prepareForValidation(): void
-    {
-        if ($this->returned_at) {
-            try {
-                $this->merge([
-                    'returned_at' => date('Y-m-d H:i:s', strtotime($this->returned_at)),
-                ]);
-            } catch (\Throwable $e) {
-                // leave as-is
-            }
-        }
     }
 
     /**

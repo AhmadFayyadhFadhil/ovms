@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\Request as VehicleRequest;
 use App\Models\Assignment;
+use App\Models\OperationalTrip;
+use App\Enums\RequestStatus;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -25,9 +27,9 @@ class OVMSApiTest extends TestCase
     public function test_user_can_register_and_login()
     {
         $response = $this->postJson('/api/register', [
-            'name' => 'John Doe',
-            'email' => 'john@ovms.test',
-            'password' => 'password123',
+            'name'                  => 'John Doe',
+            'email'                 => 'john@ovms.test',
+            'password'              => 'password123',
             'password_confirmation' => 'password123',
         ]);
 
@@ -35,14 +37,14 @@ class OVMSApiTest extends TestCase
             ->assertJsonPath('status', 'success')
             ->assertJsonStructure([
                 'data' => [
-                    'user' => ['id', 'name', 'email', 'roles'],
+                    'user'  => ['id', 'name', 'email', 'roles'],
                     'token',
                     'token_type'
                 ]
             ]);
 
         $response = $this->postJson('/api/login', [
-            'email' => 'john@ovms.test',
+            'email'    => 'john@ovms.test',
             'password' => 'password123',
         ]);
 
@@ -57,43 +59,54 @@ class OVMSApiTest extends TestCase
 
         $response = $this->actingAs($employee)
             ->postJson('/api/requests', [
-                'purpose' => 'Meeting client',
-                'start_time' => now()->addDay()->format('Y-m-d H:i:s'),
-                'end_time' => now()->addDay()->addHours(2)->format('Y-m-d H:i:s'),
-                'vehicle_id' => null,
+                'destination_city'  => 'Jakarta',
+                'destination_place' => 'Sudirman',
+                'purpose'           => 'Meeting client',
+                'start_time'        => now()->addDay()->format('Y-m-d H:i:s'),
+                'end_time'          => now()->addDay()->addHours(2)->format('Y-m-d H:i:s'),
+                'passenger_count'   => 1,
+                'priority'          => 'normal',
             ]);
 
         $response->assertStatus(201)
-            ->assertJsonPath('data.vehicle', null);
+            ->assertJsonPath('data.status', 'submitted');
     }
 
-    public function test_admin_can_approve_request()
+    public function test_dept_head_can_approve_request()
     {
-        $admin = User::factory()->create();
-        $admin->assignRole('Admin');
+        $deptHead = User::factory()->create(['department_id' => 'IT']);
+        $deptHead->assignRole('Approver');
 
-        $employee = User::factory()->create();
+        $employee = User::factory()->create(['department_id' => 'IT']);
         $employee->assignRole('Employee');
 
         $vehicleRequest = VehicleRequest::create([
-            'user_id' => $employee->id,
-            'purpose' => 'Delivery',
-            'start_time' => now()->addDay(),
-            'end_time' => now()->addDay()->addHours(4),
-            'status' => 'Pending',
+            'user_id'           => $employee->id,
+            'department_id'     => 'IT',
+            'destination_city'  => 'Bandung',
+            'destination_place' => 'Kantor',
+            'purpose'           => 'Delivery',
+            'start_time'        => now()->addDay(),
+            'end_time'          => now()->addDay()->addHours(4),
+            'passenger_count'   => 1,
+            'priority'          => 'normal',
+            'status'            => RequestStatus::SUBMITTED,
         ]);
 
-        $response = $this->actingAs($admin)
-            ->postJson("/api/requests/{$vehicleRequest->id}/approve");
+        $response = $this->actingAs($deptHead)
+            ->postJson("/api/requests/{$vehicleRequest->id}/approve", [
+                'role'  => 'dept_head',
+                'notes' => 'Disetujui',
+            ]);
 
         $response->assertStatus(200)
-            ->assertJsonPath('data.status', 'Approved');
+            ->assertJsonPath('data.status', 'approved_department');
     }
 
     public function test_assign_vehicle_validates_driver_role()
     {
-        $admin = User::factory()->create();
-        $admin->assignRole('Admin');
+        $ga = User::factory()->create();
+        $ga->assignRole('GA');
 
         $employee = User::factory()->create();
         $employee->assignRole('Employee');
@@ -101,30 +114,24 @@ class OVMSApiTest extends TestCase
         $notADriver = User::factory()->create();
         $notADriver->assignRole('Employee'); // Not a Driver!
 
-        $vehicle = Vehicle::create([
-            'name' => 'Toyota Avanza',
-            'plate_number' => 'B 1234 ABC',
-            'type' => 'Car',
-            'capacity' => 7,
-            'status' => 'Available',
-        ]);
-
         $vehicleRequest = VehicleRequest::create([
-            'user_id' => $employee->id,
-            'vehicle_id' => $vehicle->id,
-            'purpose' => 'Delivery',
-            'start_time' => now()->addDay(),
-            'end_time' => now()->addDay()->addHours(4),
-            'status' => 'Approved', // Pre-approved
+            'user_id'           => $employee->id,
+            'destination_city'  => 'Jakarta',
+            'destination_place' => 'Gedung A',
+            'purpose'           => 'Delivery',
+            'start_time'        => now()->addDay(),
+            'end_time'          => now()->addDay()->addHours(4),
+            'passenger_count'   => 1,
+            'priority'          => 'normal',
+            'status'            => RequestStatus::APPROVED_HRD_GA, // ready to be assigned
         ]);
 
         // Attempting to assign with non-driver user should fail
-        $response = $this->actingAs($admin)
+        $response = $this->actingAs($ga)
             ->postJson('/api/assignments', [
                 'request_id' => $vehicleRequest->id,
-                'vehicle_id' => $vehicle->id,
-                'driver_id' => $notADriver->id,
-                'assigned_at' => now()->format('Y-m-d H:i:s'),
+                'driver_id'  => $notADriver->id,
+                'notes'      => 'Tolong antar',
             ]);
 
         $response->assertStatus(422)
@@ -134,12 +141,11 @@ class OVMSApiTest extends TestCase
         $driver = User::factory()->create();
         $driver->assignRole('Driver');
 
-        $response = $this->actingAs($admin)
+        $response = $this->actingAs($ga)
             ->postJson('/api/assignments', [
                 'request_id' => $vehicleRequest->id,
-                'vehicle_id' => $vehicle->id,
-                'driver_id' => $driver->id,
-                'assigned_at' => now()->format('Y-m-d H:i:s'),
+                'driver_id'  => $driver->id,
+                'notes'      => 'Tolong antar',
             ]);
 
         $response->assertStatus(201)
@@ -158,28 +164,35 @@ class OVMSApiTest extends TestCase
         $driver->assignRole('Driver');
 
         $vehicle = Vehicle::create([
-            'name' => 'Toyota Avanza',
+            'name'         => 'Toyota Avanza',
             'plate_number' => 'B 1234 ABC',
-            'type' => 'Car',
-            'capacity' => 7,
-            'status' => 'Available',
+            'type'         => 'Car',
+            'capacity'     => 7,
+            'status'       => 'Available',
         ]);
 
         $vehicleRequest = VehicleRequest::create([
-            'user_id' => $employee->id,
-            'vehicle_id' => $vehicle->id,
-            'purpose' => 'Delivery',
-            'start_time' => now()->addDay(),
-            'end_time' => now()->addDay()->addHours(4),
-            'status' => 'Approved',
+            'user_id'           => $employee->id,
+            'destination_city'  => 'Surabaya',
+            'destination_place' => 'Kantor Pusat',
+            'purpose'           => 'Delivery',
+            'start_time'        => now()->addDay(),
+            'end_time'          => now()->addDay()->addHours(4),
+            'passenger_count'   => 1,
+            'priority'          => 'normal',
+            'status'            => RequestStatus::DRIVER_ASSIGNED,
+            'driver_id'         => $driver->id,
+            'vehicle_id'        => $vehicle->id,
         ]);
 
-        Assignment::create([
-            'request_id' => $vehicleRequest->id,
-            'vehicle_id' => $vehicle->id,
-            'driver_id' => $driver->id,
-            'assigned_at' => now(),
-            'status' => 'Active',
+        // Create operational trip linking this vehicle
+        OperationalTrip::create([
+            'request_id'     => $vehicleRequest->id,
+            'driver_id'      => $driver->id,
+            'vehicle_id'     => $vehicle->id,
+            'start_datetime' => now()->addDay(),
+            'end_datetime'   => now()->addDay()->addHours(4),
+            'status'         => 'scheduled',
         ]);
 
         // Attempting to delete the vehicle should return 422 error

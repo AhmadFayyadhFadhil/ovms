@@ -4,6 +4,8 @@ namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use App\Enums\RequestPriority;
+use Illuminate\Validation\Rules\Enum;
 
 class StoreRequest extends FormRequest
 {
@@ -12,7 +14,6 @@ class StoreRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // User must have Employee role or higher (Admin, GA, Approver)
         return $this->user()->hasAnyRole(['Employee', 'Admin', 'GA', 'Approver', 'Driver']);
     }
 
@@ -24,10 +25,14 @@ class StoreRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'department_id' => 'nullable|string|max:255',
+            'destination_city' => 'required|string|max:255',
+            'destination_place' => 'required|string|max:255',
             'purpose' => 'required|string|max:255',
-            'start_time' => 'required|date_format:Y-m-d H:i:s|after:now',
-            'end_time' => 'required|date_format:Y-m-d H:i:s|after:start_time',
-            'vehicle_id' => 'nullable|exists:vehicles,id',
+            'start_time' => 'required|date|after:now',
+            'end_time' => 'nullable|date|after:start_time',
+            'passenger_count' => 'required|integer|min:1',
+            'priority' => ['required', new Enum(RequestPriority::class)],
             'notes' => 'nullable|string|max:1000',
         ];
     }
@@ -38,15 +43,14 @@ class StoreRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'purpose.required' => 'Tujuan peminjaman harus diisi',
-            'purpose.max' => 'Tujuan peminjaman maksimal 255 karakter',
-            'start_time.required' => 'Waktu mulai harus diisi',
-            'start_time.date_format' => 'Format waktu mulai: YYYY-MM-DD HH:MM:SS',
-            'start_time.after' => 'Waktu mulai harus di masa depan',
-            'end_time.required' => 'Waktu berakhir harus diisi',
-            'end_time.date_format' => 'Format waktu berakhir: YYYY-MM-DD HH:MM:SS',
-            'end_time.after' => 'Waktu berakhir harus setelah waktu mulai',
-            'vehicle_id.exists' => 'Kendaraan tidak ditemukan',
+            'destination_city.required' => 'Kota tujuan harus diisi',
+            'destination_place.required' => 'Tempat tujuan harus diisi',
+            'purpose.required' => 'Tujuan/Keperluan harus diisi',
+            'start_time.required' => 'Waktu berangkat harus diisi',
+            'start_time.after' => 'Waktu berangkat harus di masa depan',
+            'passenger_count.required' => 'Jumlah penumpang harus diisi',
+            'passenger_count.min' => 'Jumlah penumpang minimal 1',
+            'priority.required' => 'Prioritas harus dipilih',
         ];
     }
 }
