@@ -11,46 +11,34 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(RolePermissionSeeder::class);
 
-        $admin = User::factory()->create([
-            'name'     => 'Administrator',
-            'email'    => 'admin@ovms.test',
-            'password' => 'password',
-            'department_id' => null,
-        ]);
+        $admin = User::updateOrCreate(
+            ['email' => 'admin@ovms.test'],
+            ['name' => 'Administrator', 'password' => 'password', 'department_id' => null]
+        );
         $admin->assignRole('Admin');
 
-        $ga = User::factory()->create([
-            'name'     => 'General Affairs',
-            'email'    => 'ga@ovms.test',
-            'password' => 'password',
-            'department_id' => null,
-        ]);
+        $ga = User::updateOrCreate(
+            ['email' => 'ga@ovms.test'],
+            ['name' => 'General Affairs', 'password' => 'password', 'department_id' => null]
+        );
         $ga->assignRole('GA');
 
-        $approver = User::factory()->create([
-            'name'     => 'Manager Approver',
-            'email'    => 'approver@ovms.test',
-            'password' => 'password',
-            'department_id' => 'IT',
-            'rank'     => 'Manager',
-        ]);
+        $approver = User::updateOrCreate(
+            ['email' => 'approver@ovms.test'],
+            ['name' => 'Manager Approver', 'password' => 'password', 'department_id' => 'IT', 'rank' => 'Manager', 'is_department_head' => true]
+        );
         $approver->assignRole('Approver');
 
-        $employee = User::factory()->create([
-            'name'     => 'Employee Test',
-            'email'    => 'employee@ovms.test',
-            'password' => 'password',
-            'department_id' => 'IT',
-        ]);
+        $employee = User::updateOrCreate(
+            ['email' => 'employee@ovms.test'],
+            ['name' => 'Employee Test', 'password' => 'password', 'department_id' => 'IT']
+        );
         $employee->assignRole('Employee');
 
-        $driver = User::factory()->create([
-            'name'     => 'Driver Test',
-            'email'    => 'driver@ovms.test',
-            'password' => 'password',
-            'department_id' => null,
-            'availability_status' => 'available',
-        ]);
+        $driver = User::updateOrCreate(
+            ['email' => 'driver@ovms.test'],
+            ['name' => 'Driver Test', 'password' => 'password', 'department_id' => null, 'availability_status' => 'available']
+        );
         $driver->assignRole('Driver');
     }
 }

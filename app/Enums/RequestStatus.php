@@ -9,7 +9,7 @@ enum RequestStatus: string
     case APPROVED_HRD_GA = 'approved_hrd_ga';
     case WAITING_DRIVER = 'waiting_driver';
     case DRIVER_ASSIGNED = 'driver_assigned';
-    case IN_PROGRESS = 'in_progress';
+    case ON_GOING = 'on_going';
     case COMPLETED = 'completed';
     case REJECTED = 'rejected';
 }

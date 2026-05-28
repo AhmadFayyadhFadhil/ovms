@@ -67,12 +67,33 @@ class UserController extends Controller
             'email'    => 'required|email|unique:users,email',
             'password' => ['required', Password::min(6)],
             'role'     => ['required', Rule::in(['Admin', 'GA', 'Approver', 'Employee', 'Driver'])],
+            'rank'     => 'required_if:role,Approver|nullable|string|max:255',
+            'department_id' => ['nullable', 'string', 'max:255', Rule::in(['IT','FA','HR&GA','PRODUCTION','QC','QA'])],
+            'is_department_head' => 'boolean',
         ]);
 
+        if ($validated['role'] === 'Approver' && empty($validated['rank'] ?? null)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Rank wajib diisi untuk role Approver',
+            ], 422);
+        }
+
+        // If Approver or GA and marked as department head, department must be provided
+        if (in_array($validated['role'], ['Approver', 'GA']) && !empty($validated['is_department_head'] ?? false) && empty($validated['department_id'] ?? null)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Department wajib dipilih jika menjadi Kepala Departemen',
+            ], 422);
+        }
+
         $user = User::create([
-            'name'     => $validated['name'],
-            'email'    => $validated['email'],
-            'password' => $validated['password'],
+            'name'           => $validated['name'],
+            'email'          => $validated['email'],
+            'password'       => $validated['password'],
+            'rank'           => $validated['rank'] ?? null,
+            'department_id'  => $validated['department_id'] ?? null,
+            'is_department_head' => $validated['is_department_head'] ?? false,
         ]);
 
         $user->assignRole($validated['role']);
@@ -107,10 +128,37 @@ class UserController extends Controller
             'email'    => ['sometimes', 'required', 'email', Rule::unique('users')->ignore($user->id)],
             'password' => ['sometimes', Password::min(6)],
             'role'     => ['sometimes', Rule::in(['Admin', 'GA', 'Approver', 'Employee', 'Driver'])],
+            'rank'     => 'required_if:role,Approver|nullable|string|max:255',
+            'department_id' => ['nullable', 'string', 'max:255', Rule::in(['IT','FA','HR&GA','PRODUCTION','QC','QA'])],
+            'is_department_head' => 'boolean',
         ]);
 
         $role = $validated['role'] ?? null;
+        
+        // Check if changing to Approver role without rank
+        if ($role === 'Approver' && empty($validated['rank'] ?? null)) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Rank wajib diisi untuk role Approver',
+            ], 422);
+        }
+
+        // If Approver or GA and marked as department head, ensure department selected
+        $currentRole = $role ?? ($user->getRoleNames()[0] ?? null);
+        if (in_array($currentRole, ['Approver', 'GA']) && !empty($validated['is_department_head'] ?? false) && empty($validated['department_id'] ?? ($user->department_id ?? null))) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Department wajib dipilih jika menjadi Kepala Departemen',
+            ], 422);
+        }
+
         unset($validated['role']);
+
+        // Ensure boolean field is present when updating
+        if (!array_key_exists('is_department_head', $validated)) {
+            // keep existing value by removing from payload
+            // nothing to do
+        }
 
         $user->update($validated);
 
@@ -152,8 +200,10 @@ class UserController extends Controller
             'id'         => $user->id,
             'name'       => $user->name,
             'email'      => $user->email,
+            'rank'       => $user->rank,
             'department_id' => $user->department_id,
             'availability_status' => $user->availability_status,
+            'is_department_head' => $user->is_department_head ?? false,
             'roles'      => $user->getRoleNames(),
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,

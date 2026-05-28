@@ -25,6 +25,7 @@ class User extends Authenticatable
         'department_id',
         'availability_status',
         'rank',
+        'is_department_head',
     ];
 
     /**
@@ -47,6 +48,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_department_head' => 'boolean',
         ];
     }
 
