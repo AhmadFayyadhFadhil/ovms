@@ -28,8 +28,14 @@ class RequestController extends Controller
         if ($user->hasRole('Approver') && !$user->hasRole('Admin')) {
             if ($user->isHrGaHead()) {
                 $query->where(function ($q) use ($user) {
-                    $q->where('status', RequestStatus::APPROVED_DEPARTMENT)
-                      ->orWhereIn('department_id', $user->departmentGroup());
+                    $q->whereIn('department_id', $user->departmentGroup())
+                      ->orWhere(function ($q) {
+                          $q->whereIn('status', [
+                              RequestStatus::APPROVED_DEPARTMENT,
+                              RequestStatus::APPROVED_HRD,
+                              RequestStatus::APPROVED_HRD_GA,
+                          ]);
+                      });
                 });
             } else {
                 $query->whereIn('department_id', $user->departmentGroup());
@@ -79,8 +85,16 @@ class RequestController extends Controller
     {
         $user = Auth::user();
         if ($user->hasRole('Approver') && !$user->hasRole('Admin')) {
-            if ($user->isHrGaHead() && $vehicleRequest->status === RequestStatus::APPROVED_DEPARTMENT) {
-                // HRD&GA head can view any request at HRD stage.
+            if ($user->isHrGaHead() && in_array($vehicleRequest->status, [
+                RequestStatus::APPROVED_DEPARTMENT,
+                RequestStatus::APPROVED_HRD,
+                RequestStatus::APPROVED_HRD_GA,
+                RequestStatus::WAITING_DRIVER,
+                RequestStatus::DRIVER_ASSIGNED,
+                RequestStatus::ON_GOING,
+                RequestStatus::COMPLETED,
+            ], true)) {
+                // HRD&GA head can view requests after department approval for assignment flow.
             } elseif (!in_array($vehicleRequest->department_id, $user->departmentGroup(), true)) {
                 return response()->json(['status' => 'error', 'message' => 'Unauthorized. Request tidak berasal dari departemen Anda.'], 403);
             }

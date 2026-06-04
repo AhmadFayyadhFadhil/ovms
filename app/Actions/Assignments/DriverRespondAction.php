@@ -31,9 +31,17 @@ class DriverRespondAction
                     'end_photo' => $endPhotoPath,
                 ]);
 
-                // Revert request status back to APPROVED_HRD_GA so HRD&GA head can re-assign
+                // Revert request status back to previous approval state
+                $previousStatus = $assignment->request->status;
+                $revertStatus = RequestStatus::APPROVED_HRD_GA;
+                
+                // If request was from HR&GA department and was at APPROVED_DEPARTMENT, revert to it
+                if ($assignment->request->department_id === 'HR&GA' && $previousStatus === RequestStatus::APPROVED_DEPARTMENT) {
+                    $revertStatus = RequestStatus::APPROVED_DEPARTMENT;
+                }
+
                 $assignment->request()->update([
-                    'status' => RequestStatus::APPROVED_HRD_GA,
+                    'status' => $revertStatus,
                     'driver_id' => null,
                     'assigned_by' => null,
                     'assigned_at' => null,

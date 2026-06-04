@@ -163,9 +163,14 @@ class AssignmentController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Tidak dapat membatalkan assignment yang sudah diproses'], 422);
         }
 
-        // Kembalikan status request ke approved_hrd_ga agar bisa di-assign ulang
+        // Kembalikan status request ke state sebelumnya
+        $revertStatus = \App\Enums\RequestStatus::APPROVED_HRD_GA;
+        if ($assignment->request->department_id === 'HR&GA' && $assignment->request->status === \App\Enums\RequestStatus::APPROVED_DEPARTMENT) {
+            $revertStatus = \App\Enums\RequestStatus::APPROVED_DEPARTMENT;
+        }
+
         $assignment->request()->update([
-            'status'      => \App\Enums\RequestStatus::APPROVED_HRD_GA,
+            'status'      => $revertStatus,
             'driver_id'   => null,
             'assigned_by' => null,
             'assigned_at' => null,
